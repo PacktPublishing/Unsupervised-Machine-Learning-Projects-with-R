@@ -9,14 +9,14 @@ The code bundle for this video course is available at: https://github.com/PacktP
 <H2>What You Will Learn</H2>
 <DIV class=book-info-will-learn-text>
 <UL>
-<LI>What CoreData is 
-<LI>How to create data schemes and save them in CoreData. 
-<LI>How to retrieve data from the database. 
-<LI>Present pollen data in a visually appealing way to the user. 
-<LI>Allow users to delete objects from their to-do list. 
-<LI>How to install Realm and get it into your project. 
-<LI>The basics of CocoaPods. 
-<LI>The similarities and differences between CoreData and Realm. </LI></UL></DIV>
+<LI>Learn the benefits of deploying Machine Learning algorithms in R 
+<LI>Explore K-means clustering techniques
+<LI>Prepare data for imputation and model diagnostics
+<LI>Train, evaluate, and improve your models 
+<LI>Visualize the Principal Component Analysis model in 2D 
+<LI>Learn pattern mining for transactional data
+<LI>Learn what mocking is and how to use mocking frameworks 
+<LI>Understand the selection of design patterns </LI></UL></DIV>
 
 ## Instructions and Navigation
 ### Assumed Knowledge

@@ -1,0 +1,99 @@
+---
+title: "Section 2 Video 5 : Evaluating and Improving Your Model"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+  theme: readable  # Document Style
+  highlight: tango # Syntax Highlighting
+  number_sections: yes # Table Of Content numbering
+  toc: yes  # Table Of Content
+  toc_depth: 3  # Table Of Content depth
+  df_print: paged # Print the data frames in a html table
+---
+  
+  
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read Data
+
+```{r}
+data_online_scaled <- readRDS(file = "data_online_scaled.RDS")
+```
+
+
+# Randomness in the clustering 
+
+```{r}
+set.seed(123)
+M <- 10
+k_means_m <- lapply(1:M, function(m)
+  table(kmeans(data_online_scaled, centers = 3, nstart = 20)$cluster)
+)
+k_means_m
+```
+
+
+# Starting values 
+
+```{r}
+N_start <- seq(from = 1, to = 1000, by = 20)
+
+set.seed(123)
+k_means_Nstart <- lapply(N_start, function(n){
+   cat("\r", n)
+    tmp <- table(kmeans(data_online_scaled, centers = 3, nstart = n)$cluster)
+    # Retrieve the % of the biggest cluster
+    tmp[which.max(tmp)] / sum(tmp)
+})
+df_results <- data.frame(n_start = N_start, big_cluster = do.call(c, k_means_Nstart))
+
+ggplot(df_results, aes(x = n_start, y = big_cluster)) +
+  geom_line() + 
+  labs(title = "% of the biggest cluster against number of random sets",
+       y     = "% biggest cluster")
+```
+
+
+# Varying the Number of Clusters K 
+
+```{r}
+set.seed(1234)
+K_vec <- 3:5
+k_means_k <- lapply(K_vec, function(k)
+  table(kmeans(data_online_scaled, centers = k, nstart = 500)$cluster)
+)
+names(k_means_k) <- K_vec
+k_means_k
+```
+
+Different repartitions... 
+--> **Redo** the analysis of Video 4 by varying the number of clusters.
+
+
+# Iris Example
+
+Recall example in Section 1 Video 2
+
+
+

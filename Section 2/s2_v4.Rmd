@@ -1,0 +1,207 @@
+---
+title: "Section 2 Video 4 : Training Your Model"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+    code_folding: hide  # Hide the code in the report  
+---
+  
+
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", "ggpubr")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read Data
+
+```{r}
+(data_online_scaled <- readRDS(file = "data_online_scaled.RDS")) %>% data.frame()
+```
+
+
+# Some intuition
+
+Number of Unique Values for ID variables: StockCode, InvoiceNo and CustomerID
+```{r}
+length(unique(data_online_scaled[,'StockCode']))
+length(unique(data_online_scaled[,"InvoiceNo"]))
+length(unique(data_online_scaled[,"CustomerID"]))
+```
+
+
+# Run the algorithm
+
+```{r}
+K <- 3 
+set.seed(12)
+k_means <- kmeans(x = data_online_scaled, centers = K, nstart = 20, )
+str(k_means)
+```
+
+
+# How many transactions per cluster do we have ? 
+
+```{r}
+table(k_means$cluster)
+```
+
+
+# Visualization {.tabset}
+
+**On the original scale**
+```{r}
+data_online_final <- readRDS(file = "data_online_final.RDS")
+
+set.seed(1234)  # Keep same sampling as before
+samples_to_keep <- sample(x = 1:nrow(data_online_final), size = 1000)
+data_online_final <- data_online_final %>% slice(samples_to_keep)
+
+data_online_final$cluster <- as.factor(k_means$cluster)
+```
+
+
+## ID features {-}
+
+**StockCode**
+```{r, warning=FALSE}
+# ggplot(data_online_final, aes(x = StockCode, fill = cluster)) +
+#   geom_bar() 
+
+ggplot(data_online_final, aes(x = as.numeric(StockCode), fill = cluster, col = cluster)) +
+  geom_density(alpha = 0.2, size = 1) +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+```
+
+**InvoiceNo**
+```{r}
+# ggplot(data_online_final, aes(x = InvoiceNo, fill = cluster)) +
+#   geom_bar() 
+
+ggplot(data_online_final, aes(x = as.numeric(InvoiceNo), fill = cluster, col = cluster)) +
+  geom_density(alpha = 0.2, size = 1)  +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+```
+
+**CustomerID**
+```{r}
+# ggplot(data_online_final, aes(x = as.factor(CustomerID), fill = cluster)) +
+#   geom_bar() 
+
+ggplot(data_online_final, aes(x = CustomerID, fill = cluster, col = cluster)) +
+  geom_density(alpha = 0.2, size = 1) +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+```
+
+
+
+## Country {-}
+
+```{r}
+ggplot(data_online_final, aes(x = Country, fill = cluster)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+## Without UK 
+ggplot(data_online_final %>% filter(Country != "United Kingdom"), aes(x = Country, fill = cluster)) +
+  geom_bar() +
+  labs(title = "Without United Kingdom") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+ggplot(data_online_final, aes(x = Country, y = Quantity, col = cluster)) +
+  geom_jitter() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+## Price & Quantity {-}
+
+```{r, fig.width = 9}
+g_price <- ggplot(data_online_final,
+                  aes(x = UnitPrice, fill = cluster, col = cluster)) +
+  geom_density(alpha = 0.2, size = 1) +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+g_quantity <- ggplot(data_online_final,
+                     aes(x = Quantity, fill = cluster, col = cluster)) +
+  geom_density(alpha = 0.2, size = 1) +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+
+ggarrange(
+  g_price,
+  g_quantity,
+  common.legend = TRUE,
+  legend        = "bottom"
+)
+```
+
+**Remove "outliers" for better visualization**
+```{r, fig.width = 9}
+g_price2 <- ggplot( 
+  data_online_final %>% filter(UnitPrice < 10),
+  aes(x = UnitPrice, fill = cluster, col = cluster)
+) +
+  geom_density(alpha = 0.2, size = 1) +
+   # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+g_quantity2 <- ggplot(
+  data_online_final %>% filter(Quantity < 150),
+  aes(x = Quantity, fill = cluster, col = cluster)
+) +
+  geom_density(alpha = 0.2, size = 1) + 
+  # Remove horizontal line in the density plot
+  geom_hline(yintercept = 0, colour = "white", size = 1.1)
+
+ggarrange(
+  g_price2,
+  g_quantity2,
+  common.legend = TRUE,
+  legend        = "bottom"
+)
+```
+
+
+## Hour of day (7-20) {-}
+
+```{r}
+ggplot(data_online_final, aes(hour_of_day, fill = cluster)) +
+  geom_bar(position = "fill") 
+```
+
+## Day of the Week  {-}
+
+```{r}
+ggplot(data_online_final, aes(as.factor(day_of_week), fill = cluster)) +
+  geom_bar(position = "fill")
+```
+
+
+

@@ -1,0 +1,50 @@
+```{r}
+# Already scaled data
+res.pca <- PCA(
+  data_online_scaled,
+  quanti.sup = 11:12,
+  quali.sup = 13,
+  graph = FALSE,
+  scale.unit = FALSE
+)
+PCAshiny(res.pca)
+```
+
+## Iris 
+```{r}
+data(iris)
+iris_scaled <- scale(iris[, -5])
+
+res.pca <- PCA(iris_scaled, graph = FALSE)
+PCAshiny(res.pca)
+```
+
+
+```{r}
+data(decathlon)
+res.pca <- PCA(decathlon, quanti.sup = 11:12, quali.sup=13)
+
+library(shiny)
+runGist("5846650")
+```
+
+
+
+
+```{r}
+library(factoextra)
+data(iris)
+res.pca <- prcomp(iris[, -5],  scale = TRUE)
+get_eig(res.pca)
+# Scree plot - Eigenvalues
+fviz_eig(res.pca, choice = "variance", 
+         addlabels = TRUE, barcolor ="darkblue",
+               linecolor ="red") + theme_bw() + coord_cartesian(ylim=c(0,75)) + 
+  geom_vline(xintercept = 2, linetype="dashed")+ 
+  ggtitle("Plot of eigenvalues in function of the PC")
+# 
+# fviz_eig(res.pca, choice = "variance",
+#          addlabels = TRUE, barcolor ="darkblue",
+#                linecolor ="red") + theme_bw() + 
+#   ggtitle("Plot of variance explained by the PC")
+```

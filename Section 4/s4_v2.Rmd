@@ -1,0 +1,139 @@
+---
+title: "Section 4 Video 2: Computing Item Sets : association rules"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+    code_folding: hide  # Hide the code in the report  
+---
+
+
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", "plyr", "arules")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read Data
+
+```{r}
+(data_online_final <- readRDS(file = "data_online_final.RDS")) 
+```
+
+
+# Compute the transaction dataframe 
+ 
+```{r}
+(item_data <- ddply(data_online_final, c("CustomerID", "InvoiceDate"),
+                  function(df) paste(df$Description, collapse = ",")))
+```
+
+```{r, results = FALSE}
+item_data <-  item_data %>% select(-CustomerID, -InvoiceDate)
+colnames(item_data) <- c("items")
+item_data
+```
+
+
+# Write to csv file 
+
+```{r, eval = FALSE}
+write.csv(item_data, "market_basket.csv", quote = FALSE, row.names = TRUE)
+```
+ 
+
+# Read as a transaction object 
+
+```{r}
+item_data_tr <- read.transactions(
+  file          = 'market_basket.csv',
+  format        = 'basket',
+  sep           = ',',
+  quote         = "", 
+  rm.duplicates = TRUE,
+  skip          = 1
+)
+```
+
+```{r}
+summary(item_data_tr)
+```
+
+Compute the number of items that were purchased : 
+`r 18441 * 22347 * 0.0009914608`
+
+
+## Inspect some item sets
+
+```{r}
+item_data_tr %>% head(n = 5) %>% inspect
+```
+
+
+# Apriori algorithm 
+
+1. Identify all item sets that meet a minimum support threshold
+2. Create rules from these items that meet a minimum confidence threshold
+ 
+```{r}
+rules_apriori <- item_data_tr %>%
+  apriori(parameter = list(supp = 0.005, conf = 0.8)) %>%
+  sort(by = 'confidence')
+```
+
+
+## Summary of the rules 
+
+```{r}
+summary(rules_apriori)
+```
+
+
+## Rules with most confidence 
+
+```{r}
+rules_apriori %>% head(n = 5) %>% inspect
+```
+
+* 100% customers who bought GARAGE DESIGN also bought KEY FOB.
+* 100% customers who bought ELEPHANT also bought BIRTHDAY CARD. 
+* ...
+
+
+## Rules with least confidence 
+
+```{r}
+rules_apriori %>% tail(n = 5) %>% inspect
+```
+
+
+## Rules sorted by lift 
+
+$$Lift(X\rightarrow Y) = \frac{Confidence(X \rightarrow Y)}{Support(Y)}$$
+
+```{r}
+rules_apriori %>% sort(by = "lift") %>%  head(n = 5) %>% inspect
+```
+

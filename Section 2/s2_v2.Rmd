@@ -1,0 +1,147 @@
+---
+title: "Section 2 Video 2 : Data Preparation Using Online Retail Data Set"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+---
+  
+
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      warning    = FALSE, 
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", "tm", "wordcloud")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read Data
+
+```{r}
+data_online_final <- readRDS(file = "data_online_final.RDS")
+
+# Take a random subsample of the dataset to reduce the computations. 
+# Make it reproducible. Take 1k samples
+set.seed(1234)
+samples_to_keep <- sample(x = 1:nrow(data_online_final), size = 1000)
+(data_online_final <- data_online_final %>% slice(samples_to_keep))
+```
+
+
+
+# Text Mining for the *Description* feature
+
+Using `tm` R package. 
+```{r}
+vignette("tm")
+```
+
+
+```{r}
+data_online_docs <- Corpus(VectorSource(data_online_final$Description)) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(removeNumbers) %>%
+  tm_map(tolower) %>%
+  tm_map(removeWords, c("red", "green", "orange", "blue", stopwords("english"))) %>%
+  tm_map(stripWhitespace) %>%
+  TermDocumentMatrix() %>% 
+  as.matrix() %>% 
+  t()
+```
+Represents a matrix with products in rows and the words in columns.
+The value for each case is 1 if the description of the product $i$ contains the word $j$, and 0 otherwise.
+
+**Frequency of each word**
+```{r}
+freq_ordered <- sort(colSums(data_online_docs), decreasing = TRUE)
+
+(all_word <- data.frame(freq = freq_ordered))
+```
+
+
+# Wordlcoud : Visualize most frequent words
+
+```{r}
+# The higher the words, the higher the frequency 
+wordcloud(
+  words        = rownames(all_word),
+  freq         = all_word$freq,  
+  max.words    = 200,
+  min.freq     = 15,
+  scale        = c(2, 1),
+  random.order = FALSE,  # plotted in decreasing frequency
+  rot.per      = .5,
+  colors       = palette()
+)
+```
+
+
+# Keep only words with frequency > 15 
+
+```{r}
+freq_higher20 <- rownames(all_word)[all_word$freq > 15]
+data_online_docs20 <- data_online_docs[, freq_higher20]
+str(data_online_docs20)
+```
+
+
+# Combine other features to the numeric dataset 
+
+```{r}
+data_online_docs20_all <- as.data.frame(data_online_docs20) %>% 
+  mutate(InvoiceNo   = data_online_final$InvoiceNo, 
+         StockCode   = data_online_final$StockCode, 
+         Quantity    = data_online_final$Quantity,
+         InvoiceDate = data_online_final$InvoiceDate,
+         UnitPrice   = data_online_final$UnitPrice,
+         CustomerID  = data_online_final$CustomerID,
+         Country     = data_online_final$Country,
+         day_of_week = data_online_final$day_of_week,
+         hour_of_day = data_online_final$hour_of_day,
+         total_price = data_online_final$total_price ) %>%
+  apply(MARGIN = 2, FUN = function(x) as.numeric(as.factor(x)))
+
+head(data_online_docs20_all, 20)
+```
+
+
+# Scale the features
+
+```{r}
+data_online_scaled <- scale(x      = data_online_docs20_all,
+                            center = TRUE, 
+                            scale  = TRUE)
+
+head(data_online_scaled[, "Country"], 20)
+```
+
+
+# Save the Created Dataset for Next Videos
+
+```{r}
+saveRDS(data_online_scaled, "data_online_scaled.RDS")
+```
+
+
+

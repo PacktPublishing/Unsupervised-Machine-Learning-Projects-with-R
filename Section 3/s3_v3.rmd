@@ -1,0 +1,199 @@
+---
+title: "Section 3 Video 3 : Evaluate your PCA"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+---
+  
+  
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", "FactoMineR", "factoextra", "ggpubr", "Factoshiny")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Load Decathlon Dataset  
+
+```{r}
+data(decathlon2, package = "factoextra")
+decathlon2
+```
+
+
+# PCA by removing individuals 
+
+```{r}
+set.seed(123)
+id_ind_sup <- sample(x = 1:ncol(decathlon2), size = 3)
+```
+
+```{r}
+pca_active <- PCA(
+  X          =  decathlon2,
+  ind.sup    = id_ind_sup,
+  quanti.sup = 11:12,
+  quali.sup  = 13,
+  graph      = FALSE
+)
+```
+
+
+## Features
+
+
+
+```{r}
+pca_var <- fviz_pca_var(
+  X             = pca_active,
+  col.var       = "cos2",
+  gradient.cols = c("red", "orange", "green"),
+  repel         = TRUE
+)
+pca_var
+```
+
+
+```{r}
+ggplot(decathlon2, aes(x = X100m, y = Points)) + 
+  geom_point(aes(col = Long.jump)) + 
+  geom_smooth() +
+  scale_color_gradientn(colours = c("red", "orange", "green"))
+```
+
+
+## Individuals 
+
+```{r}
+pca_active$ind.sup
+```
+
+```{r, fig.height=7}
+pca_ind <- fviz_pca_ind(
+  X            = pca_active,
+  habillage    = ncol(decathlon2),
+  addEllipses  = TRUE, # Concentration ellipses
+  ellipse.type = "confidence", # Other types: convex, t, norm, euclid 
+  repel        = TRUE
+)
+
+ggarrange(pca_var, pca_ind, nrow = 2)
+```
+
+
+# Kmeans : 3 groups
+
+## Features 
+
+```{r}
+set.seed(123)
+kmeans3_feat   <- kmeans(pca_active$var$coord, centers = 3, nstart = 50)
+clust3_feat    <- as.factor(kmeans3_feat$cluster)
+
+fviz_pca_var(
+  X            = pca_active,
+  col.var      = clust3_feat,
+  legend.title = "Cluster"
+)
+```
+
+
+## Individuals 
+
+```{r}
+set.seed(123)
+kmeans3_ind   <- kmeans(pca_active$ind$coord, centers = 3, nstart = 25)
+clust3_ind    <- as.factor(kmeans3_ind$cluster)
+
+fviz_pca_ind(
+  X            = pca_active,
+  geom.ind     = "point", # show points only (nbut not "text")
+  col.ind      = clust3_ind,
+  addEllipses  = TRUE, # Concentration ellipses
+  ellipse.type = "confidence", 
+  legend.title = "Clusters"
+)
+```
+
+
+## Biplot 
+
+```{r}
+fviz_pca_biplot(
+  X            = pca_active,
+  col.var      = clust3_feat,
+  legend.title = "Cluster",
+  geom.ind     = "point", # show points only (nbut not "text")
+  col.ind      = clust3_ind,
+  addEllipses  = TRUE, # Concentration ellipses
+  ellipse.type = "confidence"
+)
+```
+
+
+# To explore by yourself 
+
+
+## Factoshiny
+
+```{r}
+Factoshiny::PCAshiny(X = decathlon2) #pca_active
+```
+
+
+## More Dimensions 
+
+
+```{r}
+fviz_pca_var(
+  X             = pca_active,
+  axes          = 3:4, 
+  repel         = TRUE
+)
+```
+
+
+## Online Retail Dataset
+
+```{r}
+# Load data
+data_online_scaled <- readRDS(file = "data_online_scaled.RDS")
+
+pca_online <- PCA(
+  X          = data_online_scaled,
+  #Without created features (words) : data_online_scaled[, -(1:47)]
+  graph      = FALSE,
+  scale.unit = FALSE,
+  ncp        = 10
+)
+
+fviz_eig(
+  X         = pca_online,
+  addlabels = TRUE,
+  ncp       = 10,
+  choice    = "variance"
+)
+```
+

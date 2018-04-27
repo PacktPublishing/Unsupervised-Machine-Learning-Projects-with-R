@@ -1,0 +1,86 @@
+---
+title: " Section 1 Video 4 : Choosing a Machine Learning Algorithm"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+  theme: readable  # Document Style
+  highlight: tango # Syntax Highlighting
+  number_sections: yes # Table Of Content numbering
+  toc: yes  # Table Of Content
+  toc_depth: 3  # Table Of Content depth
+  df_print: paged # Print the data frames in a html table
+---
+  
+  
+# Iris Dataset
+  
+```{r}
+library(tidyverse)
+
+data("iris")
+
+# Reproducible example 
+
+set.seed(12)
+# Keep only 2 species --> binary supervised problem
+iris2 <- iris %>% 
+  filter(Species %in% c("setosa", "virginica")) %>%
+  mutate(Species = factor(Species, levels = c("setosa", "virginica"))) %>%
+  # Add noise in the dataset so that all algo's have not 100% accuracy
+  add_row( Sepal.Length = rnorm(50, mean = 5, sd = 5),
+           Sepal.Width  = rnorm(50, mean = 5, sd = 5),
+           Petal.Length = rnorm(50, mean = 5, sd = 5),
+           Petal.Width  = rnorm(50, mean = 5, sd = 5),
+           Species      = sample(x      = c("setosa", "virginica"), 
+                                 size   = 50,
+                                 replace= TRUE)
+           )
+```
+
+
+# Selection of Supervised algorithms : cross-validation 
+
+```{r}
+library(caret)
+
+# Control the computationnal parameters of the train function 
+control_training <- trainControl(method = "cv", number = 5 )
+# 5-fold cross-validation :  4/5 training and 1/5 validation set
+
+
+# Train the k-Nearest Neighbors
+set.seed(123)
+model_knn <- train(Species ~ .,
+                   data      = iris2,
+                   method    = "knn",
+                   trControl = control_training)
+
+# train the SVM model
+set.seed(123)
+model_svm <- train(Species ~ .,
+                   data      = iris2,
+                   method    = "svmLinear",
+                   trControl = control_training)
+
+# train the random forest model
+set.seed(123)
+model_rf <- train(Species ~ .,
+                  data      = iris2,
+                  method    = "rf",
+                  trControl = control_training)
+
+
+# collect resamples
+results <- resamples(list(knn = model_knn, SVM = model_svm, RF = model_rf))
+# summarize the distributions
+summary(results)
+
+```
+
+
+```{r}
+# dotplot of results
+dotplot(results)
+```
+
+

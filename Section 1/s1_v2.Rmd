@@ -1,0 +1,79 @@
+---
+title: " Section 1 Video 2  : The benefits of deploying Machine Learning Models"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    fig.height : 2
+    df_print: paged # Print the data frames in a html table
+---
+
+ 
+# Iris Dataset
+
+```{r}
+data("iris")
+iris
+```
+
+
+
+## Supervised Learning : logistic regression
+
+```{r fig.height=3.5, fig.width=6}
+library("tidyverse")
+
+# Take only 2 species to have a binary response, and run the logistic regression 
+iris2 <- iris %>% filter(Species %in% c("setosa", "virginica"))
+logistic_regression <-
+  glm(Species ~ Sepal.Length, data = iris2, family = "binomial")
+  
+# Make the predictions
+predicted_probabilities <- predict(logistic_regression, type = "response")
+# If probability > 50%, then we predict virginica. 
+predicted_class <- ifelse(predicted_probabilities > 0.5, "virginica", "setosa")
+
+
+# Visualize the results
+data_frame_logistic <- data.frame(
+  predictions  = predicted_class,
+  Species      = iris2$Species,
+  Petal.Length = iris2$Petal.Length
+)
+ 
+ggplot(data_frame_logistic) +
+  geom_point(aes(x = Petal.Length, y = predictions, col = Species))
+```
+
+
+
+## Unsupervised Learning
+
+```{r}
+iris_unsupervised <- iris %>% select(-Species)
+iris_unsupervised
+```
+
+```{r fig.height=3, fig.width=6}
+library("e1071")
+
+# K-means clustering : 3 clusters
+k_means <- kmeans(iris_unsupervised, centers = 3, nstart = 20)
+
+iris_unsupervised$clusters <- as.factor(k_means$cluster)
+
+ggplot(iris_unsupervised) + 
+  geom_point(aes(x = Petal.Length, y = Petal.Width, color = clusters)) 
+```
+
+Truth : 
+
+```{r fig.height=3, fig.width=6}
+ggplot(iris) +
+  geom_point(aes(x = Petal.Length, y = Petal.Width, color = Species)) 
+```
+

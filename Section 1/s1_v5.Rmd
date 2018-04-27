@@ -1,0 +1,268 @@
+---
+title: "Section 1 video 4 : Data Exploration with Online Retail Data Set Sample"
+author: "Antoine Pissoort"
+date: "February 28, 2018"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlightiing
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, fig.height = 1.5)
+```
+
+
+## Automatic Packages Installing and Loading 
+
+```{r}
+packages <- c("readr", "tidyverse", "lubridate")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only =TRUE ) 
+    )
+```
+
+
+# Data Import 
+
+```{r}
+data_online <- read_csv("data.csv")
+data_online
+```
+
+* `InvoiceNo`  : Invoice number. Nominal, a 6-digit integral number uniquely assigned to each transaction. If this code starts with letter 'c', it indicates a cancellation.
+
+* `StockCode`  : Product (item) code. Nominal, a 5-digit integral number uniquely assigned to each distinct product.
+
+* `Description`: Product (item) name. Nominal.
+
+* `Quantity`   : The quantities of each product (item) per transaction. Numeric.
+
+* `InvoiceDate`: Invoice Date and time. Numeric, the day and time when each transaction was generated.
+
+* `UnitPrice`  : Unit price. Numeric, Product price per unit in sterling.
+
+* `CustomerID` : Customer number. Nominal, a 5-digit integral number uniquely assigned to each customer.
+
+* `Country`    : Country name. Nominal, the name of the country where each customer resides. 
+
+
+
+# Data pre-processing
+
+ **Missing Values**
+```{r}
+apply(data_online, 2, function(x) sum(is.na(x)) / length(x) * 100) 
+```
+
+
+ **Duplicated Entries**
+```{r}
+sum(duplicated(data_online))
+
+data_online %>% filter(duplicated(data_online))
+```
+
+
+**Date time conversion **
+```{r}
+data_online_time <- data_online %>%
+  mutate(
+    InvoiceDate = mdy_hm(InvoiceDate),
+    day_of_week = wday(InvoiceDate, label = TRUE),
+    hour_of_day = hour(InvoiceDate)
+  )
+```
+
+
+**Final Dataset**
+```{r}
+data_online_final <- data_online_time %>%
+  mutate(  # Put to missing the negative quantity or price values
+    Quantity  = replace(Quantity, Quantity <= 0, NA),
+    UnitPrice = replace(UnitPrice, UnitPrice <= 0, NA)
+  ) %>%
+  filter(complete.cases(.) & !duplicated(.)) %>% 
+  mutate(total_price = Quantity * UnitPrice)
+
+# Save the final R dataframe to re-use in the next sections
+saveRDS(data_online_final, file = "data_online_final.RDS")
+```
+
+
+# Data exploration 
+
+
+** Number of distinct invoices, customers and products **
+```{r}
+data_online_final %>%
+  select(InvoiceNo, CustomerID, StockCode) %>%
+  apply(., 2, function(x) length(unique(x)))
+```
+
+
+
+```{r}
+# How many different orders per transaction ?
+data_online_final %>%
+  group_by(InvoiceNo) %>%
+  summarise(n = n()) %>%
+  mutate(mean = mean(n)) 
+```
+
+```{r}
+# How many different order per customers ?
+data_online_final %>% 
+  group_by(CustomerID) %>%
+  summarise(n = n()) %>%
+  mutate(mean = mean(n)) 
+```
+
+
+```{r}
+# How many transactions  per customer ? 
+data_online_final %>% 
+  group_by(CustomerID) %>% 
+  summarise(n = length(unique(InvoiceNo))) %>%
+  mutate(mean = mean(n)) %>% 
+  arrange(desc(n))
+```
+
+
+```{r}
+# How many transactions per countries ? 
+data_online_final %>% group_by(Country) %>%
+  summarise(n = n()) %>%
+  arrange(desc(n))
+```
+
+
+**Cancelled orders**
+
+```{r}
+sum(substr(data_online$InvoiceNo, 1, 1) == "C")
+```
+
+```{r}
+data_online %>% 
+  group_by(CustomerID) %>%
+  summarise(cancelled = sum(substr(InvoiceNo, 1, 1) == "C") ) %>%
+  arrange(desc(cancelled))
+```
+
+
+## Some Plots
+
+
+```{r}
+# Homogeneous Theme for ggplot
+"theme_piss" <- function(size_p = 18,
+                         size_c = 14,
+                         size_l = 12,
+                         theme = theme_bw(),
+                         col = "#33666C",
+                         ...) {
+  text <-
+    function(size, ...)
+      element_text(size = size,
+                   colour = col,
+                   face = "bold",
+                   ...)
+  theme +
+    theme(
+      plot.title = text(size_p, hjust = 0.5),
+      axis.title = text(size_c),
+      legend.title = text(size_l)
+    ) +
+    theme(
+      legend.background = element_rect(colour = "black"),
+      legend.key = element_rect(fill = "white"),
+      ...
+    )
+}
+
+# Set the theme for all following plots
+theme_set(theme_piss())
+```
+
+
+### Revenue over time 
+
+```{r, fig.height=3.5, fig.width=8}
+data_online_final %>%
+  mutate(InvoiceDate = as.Date(as.POSIXct(InvoiceDate, "GMT"))) %>% 
+  group_by(InvoiceDate) %>%
+  summarise(revenue = sum(total_price)) %>%
+  ggplot(aes(x = InvoiceDate, y = revenue)) + 
+  geom_line() + 
+  geom_smooth(method = 'loess', se = FALSE) +
+  labs(x = 'Date', y = 'Revenue (£)', title = 'Revenue over time with a smoothed model')
+```
+
+
+
+### Revenue per days of the week 
+
+```{r, fig.height=3.5, fig.width=8}
+data_online_final %>%
+  group_by(day_of_week) %>%
+  summarise(revenue = sum(total_price)) %>%
+  ggplot(aes(x = day_of_week, y = revenue)) + 
+  geom_col() + 
+  labs(x = 'Day of Week', y = 'Revenue (£)', title = 'Revenue by Day of Week')
+```
+
+### Revenue per hours of a day 
+
+```{r, fig.height=3.5, fig.width=8}
+data_online_final %>%
+  group_by(hour_of_day) %>%
+  summarise(revenue = sum(total_price)) %>%
+  ggplot(aes(x = hour_of_day, y = revenue)) +
+  geom_col() + 
+  labs(x = 'Hour Of Day', y = 'Revenue (£)', title = 'Revenue by Hour Of Day')
+```
+
+
+
+### Distribution of the revenues per Customer 
+
+```{r, fig.height=3.5, fig.width=8}
+data_online_final %>%
+  group_by(CustomerID) %>%
+  summarise(revenue = sum(total_price), 
+            transactions = n_distinct(InvoiceNo)) %>%
+  mutate(avg_ordr_val = (round((revenue / transactions), 2))) %>% 
+  ggplot(aes(x = avg_ordr_val)) + 
+  geom_histogram() + 
+  scale_x_log10() +
+  labs(x = 'Revenue', y = 'Count of Customers', title = 'Histogram of Revenue per customer (Log Scale)')
+```
+
+
+```{r, fig.height=3.5, fig.width=8}
+data_online_final %>%
+  group_by(CustomerID, Country) %>%
+  summarise(revenue = sum(total_price), 
+            transactions = n_distinct(InvoiceNo)) %>%
+  mutate(avg_ordr_val = (round((revenue / transactions), 2))) %>% 
+  filter(Country %in% c("United Kingdom", "Netherlands", "France", "Germany")) %>%
+  ggplot(aes(x = avg_ordr_val)) + 
+  geom_density(aes(fill = Country, col = Country ), alpha = 0.1, size = 1.2) + 
+  scale_x_log10() +
+  labs(x = 'Revenue', y = 'Count of Customers', title = 'Histogram of Revenue per customer (Log Scale)')
+```
+

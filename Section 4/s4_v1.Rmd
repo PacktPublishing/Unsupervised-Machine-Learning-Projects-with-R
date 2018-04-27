@@ -1,0 +1,93 @@
+---
+title: "Section 4 Video 1: Market Basket Analysis for Transactional Data"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+    code_folding: hide  # Hide the code in the report  
+---
+  
+
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read Data
+
+```{r}
+(data_online_final <- readRDS(file = "data_online_final.RDS")) 
+```
+
+--> Check Section 1 Video 5 
+
+
+# How many items per customer ? 
+
+```{r}
+data_online_final %>%
+  group_by(CustomerID) %>%
+  summarise(n_items_avg = mean(Quantity)) %>%
+  filter(n_items_avg <= 100) %>% 
+  ggplot(aes(x = n_items_avg)) +
+  geom_histogram(bins = 500) 
+```
+
+```{r}
+data_online_final %>%
+  group_by(CustomerID) %>%
+  summarise(n_items_avg = mean(Quantity)) %>% 
+  arrange(desc(n_items_avg))
+```
+
+
+# Top best sellers
+
+```{r}
+data_online_final %>%
+  group_by(StockCode, Description) %>%
+  summarise(count = n()) %>%
+  filter(count > 1000) %>% 
+  ggplot(aes(x = reorder(Description, count), y = count)) +
+  geom_bar(stat = "identity") +
+  coord_flip() 
+```
+
+Who purchased the best seller ? 
+```{r}
+count_customer_BestSeller <- data_online_final %>%
+  group_by(CustomerID) %>%
+  filter(Description == "WHITE HANGING HEART T-LIGHT HOLDER") %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) 
+count_customer_BestSeller
+```
+
+What percentage of customers purchased this item ? 
+```{r}
+nrow(count_customer_BestSeller) / length(unique(data_online_final$CustomerID))
+```
+

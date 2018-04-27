@@ -1,0 +1,183 @@
+---
+title: "Section 4 Video 3: Visualizing Items Sets"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+    code_folding: hide  # Hide the code in the report  
+---
+  
+
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", 'arules', "arulesViz")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+
+# Read the transaction object 
+
+```{r}
+item_data_tr <- read.transactions(
+  file          = 'market_basket.csv',
+  format        = 'basket',
+  sep           = ',',
+  quote         = "", 
+  rm.duplicates = TRUE,
+  skip          = 1
+)
+```
+
+
+## Summary 
+
+```{r}
+summary(item_data_tr)
+```
+
+
+## Inspect 
+
+```{r}
+set.seed(1234)
+item_data_tr[sample(1:length(item_data_tr), 3)] %>% inspect
+```
+
+
+# Check the item frequency plot
+
+```{r, fig.height=5}
+itemFrequencyPlot(x     = item_data_tr,
+                  topN  = 12,
+                  # support =
+                  type  = 'absolute',
+                  horiz = TRUE)
+```
+
+
+# Apriori algorithm 
+
+```{r}
+rules_apriori <- item_data_tr %>%
+  apriori(parameter = list(supp = 0.005, conf = 0.8)) %>%
+  sort(by = c('confidence', "lift"))
+```
+
+
+# Inspect the top 10 rules 
+
+```{r}
+inspect(rules_apriori[1:10])
+```
+
+# Plot the top 10 rules 
+
+```{r}
+plot(rules_apriori[1:10])
+```
+
+# Plot the top 100 rules 
+
+```{r}
+plot(rules_apriori[1:100])
+```
+
+# Plot all the rules 
+
+```{r}
+plot(rules_apriori)
+```
+
+# Plot method of the arulesViz package
+
+```{r, eval = FALSE}
+plot(
+  x,
+  method      = NULL,
+  measure     = "support",
+  shading     = "lift",
+  control     = NULL,
+  engine      = "default"
+)
+```
+
+* **method** :  "scatterplot", "two-key plot", "matrix", "matrix3D", "mosaic", "doubledecker", "graph", "paracoord" or "grouped", "iplots
+* **measure** :  "support", "confidence", "lift", "order"
+* **shading** : "support", "confidence", "lift"
+* **control** : a list of control parameters for the plot depending on the used visualization method
+* **engine**  : plotting engine used to render the plot. Can be "interactive", "3d", ... 
+
+
+## Plot of the lift vs Support coloured by confidence 
+
+```{r}
+plot(rules_apriori,
+     measure = c("support", "lift"),
+     shading = "confidence")
+```
+
+
+## Plot a graph for the top 10 rules 
+
+```{r}
+plot(rules_apriori[1:10], method = "graph")
+```
+
+## Plot a graph for the top 10 rules 
+
+```{r, fig.width=7, fig.height=5}
+plot(rules_apriori[1:10], method = "grouped")
+```
+
+
+## Plot a 3D matrix for all the rules
+
+```{r, results = "hide"}
+plot(rules_apriori, method = "matrix", engine = "3d", measure = "lift")
+```
+
+## Plot parallel coordinates for top 10 rules
+
+```{r}
+plot(rules_apriori[1:10],
+     method  = "paracoord",
+     control = list(reorder = TRUE))
+
+```
+
+
+
+## Dynamic "two-key" plot for all the rules 
+
+```{r}
+plotly_arules(rules_apriori, method = "two-key plot")
+```
+
+
+
+
+# Simplify the analysis with Text Mining
+
+Video 2 Section 2. 
+

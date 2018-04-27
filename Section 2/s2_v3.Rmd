@@ -1,0 +1,134 @@
+---
+title: "Section 2 Video 3 : How to find K ?"
+author: "Antoine Pissoort"
+output: 
+  html_document:  
+    theme: readable  # Document Style
+    highlight: tango # Syntax Highlighting
+    number_sections: yes # Table Of Content numbering
+    toc: yes  # Table Of Content
+    toc_depth: 3  # Table Of Content depth
+    df_print: paged # Print the data frames in a html table
+---
+  
+  
+# Automatic Packages Installing and Loading 
+  
+```{r setup}
+knitr::opts_chunk$set(echo       = TRUE,
+                      fig.height = 3.5,
+                      fig.width  = 6)
+
+packages <- c("tidyverse", "gridExtra", "factoextra", "NbClust", "cluster")
+
+## Install packages From CRAN if they are not installed.
+for (p in packages) {
+  if (p %in% rownames(installed.packages()) == FALSE) {
+    install.packages(p, repos = 'http://cran.us.r-project.org')
+  }
+}
+## Load the packages
+for (p in packages)
+  suppressPackageStartupMessages(
+    library(p, quietly = TRUE, character.only = TRUE ) 
+  )
+```
+
+# Read Data
+
+```{r}
+data_online_scaled <- readRDS(file = "data_online_scaled.RDS")
+```
+
+
+# Several Methods 
+
+* **Elbow** 
+* **Average silhouette**
+* **Gap statistic**""
+* ... 
+ 
+## Elbow method
+
+Iris example 
+```{r}
+iris_scaled <- scale(iris[, -5])
+k.max <- 10
+wss <- sapply(1:k.max, function(k)
+  kmeans(x = iris_scaled, centers = k, nstart = 10)$tot.withinss
+  )
+
+df_results <- data.frame(k = 1:k.max, within_sum_square = wss)
+ggplot(df_results) +
+  geom_line(aes(x = k, y = within_sum_square)) + 
+  geom_vline(xintercept = 3, linetype = "dashed")
+```
+
+## Elbow method : online retail dataset
+
+On the (scaled) online retail dataset
+```{r}
+## K-means
+fviz_nbclust(data_online_scaled, FUNcluster = kmeans, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2) +
+  labs(subtitle = "Elbow method : K-means")
+## Hierarchical clustering
+fviz_nbclust(data_online_scaled, FUNcluster = hcut, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2) +
+  labs(subtitle = "Elbow method : Hierarchical clustering")
+## PAM 
+fviz_nbclust(data_online_scaled, FUNcluster = cluster::pam, method = "wss") +
+  geom_vline(xintercept = 4, linetype = 2) +
+  labs(subtitle = "Elbow method : PAM")
+```
+
+## Silhouette method
+```{r}
+fviz_nbclust(data_online_scaled, FUNcluster = kmeans, method = "silhouette") +
+  labs(subtitle = "Silhouette method")
+```
+
+
+##  Gap statistic
+`nboot` = 15 to keep the function speedy.
+**recommended value:** `nboot` = 500 for your analysis.
+```{r}
+set.seed(12)
+fviz_nbclust(data_online_scaled,
+             FUNcluster = kmeans,
+             nstart     = 20, 
+             k.max      = 10, 
+             method     = "gap_stat",
+             nboot      = 15) +
+  labs(subtitle = "Gap statistic method")
+```
+
+
+
+# 30 indices for choosing best K
+
+```{r, warning = FALSE}
+methods_used <- c("centroid", "kmeans", "ward.D2",  "average" )
+
+set.seed(123)
+meth <- lapply(methods_used, function(x) {
+  nc <- NbClust(
+    data_online_scaled,
+    distance = "euclidean",
+    min.nc   = 2,
+    max.nc   = 15,
+    method   = x,
+    index    = "all"
+  ) %>% invisible()
+  
+  return(fviz_nbclust(nc) + labs(title = x))
+})
+
+do.call(gridExtra::grid.arrange, meth)
+```
+
+
+
+
+
+

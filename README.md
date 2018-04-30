@@ -21,14 +21,20 @@ The code bundle for this video course is available at: https://github.com/PacktP
 ## Instructions and Navigation
 ### Assumed Knowledge
 To fully benefit from the coverage included in this course, you will need:<br/>
-Basic knowledge about Machine Learning preferred but not required
-Basics of statistics
+Basic knowledge about Machine Learning 
+Basics of R studio
 Basics of R programming
 
 ### Technical Requirements
 This course has the following software requirements:<br/>
 R 3.4.2 & Rstudio 1.1
 Tidyvere, Shiny
+This course has been tested on the following system configuration:<br/>
+OS: Windows 10<br/>
+Processor:2.4 GHz Intel Core i7<br/>
+Memory:8GB RAM<br/>
+Hard Disk Space:500GB SSD<br/>
+
 
 ## Related Products
 * [Machine Learning In The Cloud With Azure Machine Learning [Video]](https://www.packtpub.com/application-development/machine-learning-cloud-azure-machine-learning-video?utm_source=github&utm_medium=repository&utm_campaign=9781789347524)

@@ -28,12 +28,12 @@ Basics of R programming
 ### Technical Requirements
 This course has the following software requirements:<br/>
 R 3.4.2 & Rstudio 1.1
-Tidyvere, Shiny
+Tidyvere, Shiny<br/>
 This course has been tested on the following system configuration:<br/>
 OS: Windows 10<br/>
-Processor:2.4 GHz Intel Core i7<br/>
-Memory:8GB RAM<br/>
-Hard Disk Space:500GB SSD<br/>
+Processor: 2.4 GHz Intel Core i7<br/>
+Memory: 8GB RAM<br/>
+Hard Disk Space: 500GB SSD<br/>
 
 
 ## Related Products

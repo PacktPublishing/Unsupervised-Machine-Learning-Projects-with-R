@@ -43,3 +43,7 @@ Hard Disk Space: 500GB SSD<br/>
 
 * [Saving Data in iOS Apps – Core Data and Realm [Video]](https://www.packtpub.com/application-development/saving-data-ios-apps-–-core-data-and-realm-video?utm_source=github&utm_medium=repository&utm_campaign=9781788299442)
 
+### Download a free PDF
+
+ <i>If you have already purchased a print or Kindle version of this book, you can get a DRM-free PDF version at no cost.<br>Simply click on the link to claim your free PDF.</i>
+<p align="center"> <a href="https://packt.link/free-ebook/9781788622820">https://packt.link/free-ebook/9781788622820 </a> </p>
